@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+	"pygmalion",
+	"lexer",
+]
+
+resolver = "2"
