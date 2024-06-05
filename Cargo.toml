@@ -2,7 +2,8 @@
 
 members = [
 	"pygmalion",
-	"lexer",
+	"lexer", 
+	"utils",
 ]
 
 resolver = "2"
