@@ -1,43 +1,26 @@
 use std::fmt;
 
 use logos::{Lexer, Logos};
-use regex::bytes::RegexSet;
 
-#[derive(PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub enum Mode {
+    #[default]
     Normal,
     Pragma,
     Assembly,
     Yul,
 }
 
+#[derive(Debug)]
 pub struct LexerState {
-    pub cur_mode: Mode,
+    pub mode: Mode,
     pub depth: u8,
-}
-
-impl LexerState {
-    fn switch_mode(&mut self, mode: Mode) {
-        if self.depth != 0 {
-            println!("Current depth is {}", self.depth);
-        }
-
-        self.cur_mode = mode;
-    }
-
-    fn inc_depth(&mut self) {
-        self.depth += 1;
-    }
-
-    fn dec_depth(&mut self) {
-        self.depth -= 1;
-    }
 }
 
 impl Default for LexerState {
     fn default() -> Self {
         Self {
-            cur_mode: Mode::Normal,
+            mode: Mode::Normal,
             depth: 0,
         }
     }
@@ -49,176 +32,36 @@ impl fmt::Display for Mode {
     }
 }
 
-impl fmt::Debug for LexerState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "cur_mode: {}, depth: {}", self.cur_mode, self.depth)
-    }
-}
-
-fn decide_cur_token(lex: &mut Lexer<Token>, tok: Token) -> Token {
-    match tok {
-        Token::Pragma => {
-            lex.extras.switch_mode(Mode::Pragma);
-
-            return tok;
+fn switch_mode(lex: &mut Lexer<Token>) {
+    match lex.slice().as_bytes() {
+        b"pragma" => {
+            lex.extras.mode = Mode::Pragma;
         }
-        Token::Assembly => {
-            lex.extras.switch_mode(Mode::Assembly);
-
-            return Token::Assembly;
+        b"assembly" => {
+            lex.extras.mode = Mode::Assembly;
         }
-        Token::LBrace => match lex.extras.cur_mode {
-            Mode::Assembly => {
-                lex.extras.switch_mode(Mode::Yul);
-
-                return Token::AssemblyLBrace;
+        b"{" => {
+            if lex.extras.mode == Mode::Assembly {
+                lex.extras.mode = Mode::Yul;
+            } else if lex.extras.mode == Mode::Yul {
+                lex.extras.depth += 1;
             }
-            Mode::Yul => {
-                lex.extras.inc_depth();
-
-                return Token::YulLBrace;
-            }
-            _ => {
-                return Token::LBrace;
-            }
-        },
-        Token::RBrace => match lex.extras.cur_mode {
-            Mode::Yul => {
+        }
+        b"}" => {
+            if lex.extras.mode == Mode::Yul {
                 if lex.extras.depth > 0 {
-                    lex.extras.dec_depth();
+                    lex.extras.depth -= 1;
                 } else {
-                    lex.extras.switch_mode(Mode::Normal);
+                    lex.extras.mode = Mode::Normal;
                 }
-
-                return Token::YulRBrace;
             }
-            _ => {
-                return Token::RBrace;
+        }
+        b";" => {
+            if lex.extras.mode == Mode::Pragma {
+                lex.extras.mode = Mode::Normal;
             }
-        },
-        Token::Semicolon => match lex.extras.cur_mode {
-            Mode::Pragma => {
-                lex.extras.switch_mode(Mode::Normal);
-
-                return Token::PragmaSemicolon;
-            }
-            _ => {
-                return Token::Semicolon;
-            }
-        },
-        _ => match lex.extras.cur_mode {
-            Mode::Assembly => {
-                let assembly_set = RegexSet::new(&[
-                    r"(",                       // AssemblyBlockLParen,
-                    r")",                       // AssemblyBlockRParen,
-                    r",",                       // AssemblyBlockComma,
-                    r"[ \\t\\r\\n\\u{000C}]+",  // AssemblyBlockWhitespace
-                    r"/\\*([^*]|\\*[^/])*\\*/", // AssemblyBlockComment
-                    r"//.*",                    // AssemblyBlockLineComment
-                ])
-                .unwrap();
-
-                let assembly_tokens = vec![
-                    Token::AssemblyBlockLParen,
-                    Token::AssemblyBlockRParen,
-                    Token::AssemblyBlockComma,
-                    Token::AssemblyBlockWhitespace,
-                    Token::AssemblyBlockComment,
-                    Token::AssemblyBlockLineComment,
-                ];
-
-                let matched = assembly_set.matches(lex.slice().as_bytes());
-
-                for i in 0..assembly_tokens.len() {
-                    if matched.matched(i) {
-                        return assembly_tokens.get(i).unwrap().clone();
-                    }
-                }
-
-                return tok;
-            }
-            Mode::Pragma => {
-                let pragma_set = RegexSet::new(&[
-                    r"[^;]+",              // PragmaToken
-                    r"[ \t\r\n\u{000C}]+", // PragmaWhitespace
-                    r"/\*.*?\*/",          // PragmaComment
-                    r"//.*",               // PragmaLineComment
-                ])
-                .unwrap();
-
-                let pragma_tokens = vec![
-                    Token::PragmaToken,
-                    Token::PragmaWhitespace,
-                    Token::PragmaComment,
-                    Token::PragmaLineComment,
-                ];
-
-                let matched = pragma_set.matches(lex.slice().as_bytes());
-
-                for i in 0..pragma_tokens.len() {
-                    if matched.matched(i) {
-                        return pragma_tokens.get(i).unwrap().clone();
-                    }
-                }
-
-                return tok;
-            }
-            Mode::Yul => {
-                let yul_set = RegexSet::new(&[
-                    r"break",                    // YulBreak
-                    r"false",                    // YulFalse
-                    r"function",                 // YulFunction
-                    r"if",                       // YulIf
-                    r"true",                     // YulTrue
-                    r"hex",                      // YulHex
-                    r"(",                        // YulLParen
-                    r")",                        // YulRParen
-                    r".",                        // YulPeriod
-                    r",",                        // YulComma
-                    r"->",                       // YulArrow
-                    r"[a-zA-Z$_][a-zA-Z0-9$_]*", // YulIdentifier
-                    r"0[xX][0-9a-fA-F]+",        // YulHexNumber
-                    r"0|([1-9][0-9]*)",          // YulDecimalNumber
-                    r"[ \t\r\n\u{000C}]+",       // YulWhitespace
-                    r"/\*.*?\*/",                // YulComment
-                    r"//.*",                     // YulLineComment
-                ])
-                .unwrap();
-
-                let yul_tokens = vec![
-                    Token::YulBreak,
-                    Token::YulFalse,
-                    Token::YulFunction,
-                    Token::YulIf,
-                    Token::YulTrue,
-                    Token::YulHex,
-                    Token::YulLParen,
-                    Token::YulRParen,
-                    Token::YulPeriod,
-                    Token::YulComma,
-                    Token::YulArrow,
-                    Token::YulIdentifier,
-                    Token::YulHexNumber,
-                    Token::YulDecimalNumber,
-                    Token::YulWhitespace,
-                    Token::YulComment,
-                    Token::YulLineComment,
-                ];
-
-                let matched = yul_set.matches(lex.slice().as_bytes());
-
-                for i in 0..yul_tokens.len() {
-                    if matched.matched(i) {
-                        return yul_tokens.get(i).unwrap().clone();
-                    }
-                }
-
-                return tok;
-            }
-            Mode::Normal => {
-                return tok;
-            }
-        },
+        }
+        _ => {}
     };
 }
 
@@ -241,11 +84,11 @@ pub enum Token {
     Anonymous,
     #[token("as")]
     As,
-    #[token("assembly", |lex| decide_cur_token(lex, Token::Assembly))]
+    #[token("assembly", switch_mode)]
     Assembly,
     #[token("bool")]
     Bool,
-    #[token("break")]
+    #[token("break", switch_mode)]
     Break,
     #[token("bytes")]
     Bytes,
@@ -257,7 +100,7 @@ pub enum Token {
     Constant,
     #[token("constructor")]
     Constructor,
-    #[token("continue", priority = 20)]
+    #[token("continue")]
     Continue,
     #[token("contract")]
     Contract,
@@ -327,7 +170,7 @@ pub enum Token {
     Override,
     #[token("payable")]
     Payable,
-    #[token("pragma", |lex| decide_cur_token(lex, Token::Assembly))]
+    #[token("pragma", switch_mode)]
     Pragma,
     #[token("private")]
     Private,
@@ -337,6 +180,8 @@ pub enum Token {
     Pure,
     #[token("receive")]
     Receive,
+    #[token("require")]
+    Require,
     #[token("return")]
     Return,
     #[token("returns")]
@@ -351,6 +196,10 @@ pub enum Token {
     String,
     #[token("struct")]
     Struct,
+    #[token("super")]
+    Super,
+    #[token("this")]
+    This,
     #[token("true")]
     True,
     #[token("try")]
@@ -383,13 +232,13 @@ pub enum Token {
     LBrack,
     #[token("]")]
     RBrack,
-    #[token("{", |lex| decide_cur_token(lex, Token::LBrace))]
+    #[token("{", switch_mode)]
     LBrace,
-    #[token("}", |lex| decide_cur_token(lex, Token::LBrace))]
+    #[token("}", switch_mode)]
     RBrace,
     #[token(":")]
     Colon,
-    #[token(";", |lex| decide_cur_token(lex, Token::LBrace))]
+    #[token(";", switch_mode)]
     Semicolon,
     #[token(".")]
     Period,
@@ -497,69 +346,24 @@ pub enum Token {
     Identifier,
     #[regex("[ \\t\\r\\n\\u{000C}]+", logos::skip)]
     Whitespace,
-    #[regex("/\\*([^*]|\\*[^/])*\\*/", logos::skip)]
+    #[regex("/\\*([^*]|\\*[^/])*\\*/")]
     Comment,
-    #[regex("//.*", logos::skip)]
+    #[regex("//.*")]
     LineComment,
-
-    // NOTE: Mode::Assembly tokens
-    #[regex("\"evmasm\"")]
-    AssemblyDialect,
-    AssemblyLBrace,
-    AssemblyFlagString, // If token NonEmptyStringLiteral and mode is assembly
-    AssemblyBlockLParen,
-    AssemblyBlockRParen,
-    AssemblyBlockComma,
-    AssemblyBlockWhitespace,
-    AssemblyBlockComment,
-    AssemblyBlockLineComment,
-
-    // NOTE: Mode::Yul tokens
-    YulBreak,
     #[token("case")]
     YulCase,
-    #[token("continue")]
-    YulContinue,
     #[token("default")]
     YulDefault,
-    YulFalse,
-    YulFor,
-    YulFunction,
-    YulIf,
     #[token("leave")]
     YulLeave,
     #[token("let")]
-    YulLet,
+    AssemblyLet,
     #[token("switch")]
-    YulSwitch,
-    YulTrue,
-    YulHex,
+    AssemblySwitch,
     #[regex("stop|add|sub|mul|div|sdiv|mod|smod|exp|not|lt|gt|slt|sgt|eq|iszero|and|or|xor|byte|shl|shr|sar|addmod|mulmod|signextend|keccak256|pop|mload|mstore|mstore8|sload|sstore|tload|tstore|msize|gas|address|balance|selfbalance|caller|callvalue|calldataload|calldatasize|calldatacopy|extcodesize|extcodecopy|returndatasize|returndatacopy|mcopy|extcodehash|create|create2|call|callcode|delegatecall|staticcall|return|revert|selfdestruct|invalid|log0|log1|log2|log3|log4|chainid|origin|gasprice|blockhash|blobhash|coinbase|timestamp|number|difficulty|prevrandao|gaslimit|basefee|blobbasefee", priority=5)]
-    YulEVMBuiltin,
-    YulLBrace,
-    YulRBrace,
-    YulLParen,
-    YulRParen,
+    AssemblyBuiltin,
     #[token(":=")]
-    YulAssign,
-    YulPeriod,
-    YulComma,
-    YulArrow,
-    YulIdentifier,
-    YulHexNumber,
-    YulDecimalNumber,
-    YulStringLiteral,
-    YulHexStringLiteral, // TODO: if current token is HexString and mode is Yul
-    YulWhitespace,
-    YulComment,
-    YulLineComment,
-
-    // NOTE: Mode::Pragma tokens
-    PragmaToken,
-    PragmaSemicolon,
-    PragmaWhitespace,
-    PragmaComment,
-    PragmaLineComment,
+    AssemblyAssign,
 }
 
 #[cfg(test)]
@@ -567,30 +371,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reserve_keyword_works() {
-        let mut lex = Token::lexer("as as as");
+    fn test_pragma_token() {
+        let mut lex = Token::lexer("pragma solidity ^0.8.16;");
 
-        // assert_eq!(
-        //     lex.next(),
-        //     Some(Ok(Token::ReservedKeyword("after".to_string())))
-        // )
-
-        assert_eq!(lex.next(), Some(Ok(Token::LParen)))
-
-        //        loop {
-        //            match lex.next() {
-        //
-        //                _ => {
-        //                    break;
-        //                }
-        //            }
-        //        }
-    }
-
-    #[test]
-    fn sub_denomination_works() {
-        let mut lex = Token::lexer("wei");
-
-        assert_eq!(lex.next(), Some(Ok(Token::SubDenomination)))
+        while let Some(y) = lex.next() {
+            println!("{}", lex.slice());
+            println!("{:?}", y);
+            println!("mode: {:?}", lex.extras.mode);
+        }
     }
 }
