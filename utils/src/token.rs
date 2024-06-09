@@ -89,7 +89,9 @@ fn switch_mode(lex: &mut Lexer<Token>) {
                 lex.extras.switch_mode(Mode::Normal);
             }
         }
-        _ => {}
+        _ => {
+            panic!("No matching literal!");
+        }
     };
 }
 
@@ -577,26 +579,133 @@ mod tests {
     fn test_pragma_mode() {
         let mut lex = Token::lexer("pragma solidity ^0.8.16;");
 
-        let _tests = vec![
+        let tests = vec![
             (Token::Pragma, Mode::Pragma, "pragma"),
             (Token::Identifier, Mode::Pragma, "solidity"),
             (Token::BitXor, Mode::Pragma, "^"),
+            (Token::Integer, Mode::Pragma, "0"),
             (Token::Period, Mode::Pragma, "."),
+            (Token::Integer, Mode::Pragma, "8"),
+            (Token::Period, Mode::Pragma, "."),
+            (Token::Integer, Mode::Pragma, "16"),
+            (Token::Semicolon, Mode::Normal, ";"),
         ];
 
-        assert_eq!(lex.next(), Some(Ok(Token::Pragma)));
-        assert_eq!(lex.extras.mode, Mode::Pragma);
+        for i in 0..tests.len() {
+            let (tok, mode, literal) = tests[i].clone();
 
-        while let Some(y) = lex.next() {
-            println!("{}", lex.slice());
-            println!("{:?}", y);
-            println!("mode: {:?}", lex.extras.mode);
+            assert_eq!(Some(Ok(tok)), lex.next());
+            assert_eq!(mode, lex.extras.mode);
+            assert_eq!(literal.as_bytes(), lex.slice().as_bytes());
         }
     }
 
     #[test]
-    fn test_assembly_mode() {}
+    fn test_assembly_mode() {
+        let mut lex = Token::lexer(
+            "assembly {\
+                let size := extcodesize(addr)
+            }",
+        );
+
+        let tests = vec![
+            (Token::Assembly, Mode::Assembly, "assembly"),
+            (Token::LBrace, Mode::Yul, "{"),
+            (Token::AssemblyLet, Mode::Yul, "let"),
+            (Token::Identifier, Mode::Yul, "size"),
+            (Token::AssemblyBind, Mode::Yul, ":="),
+            (Token::AssemblyBuiltin, Mode::Yul, "extcodesize"),
+            (Token::LParen, Mode::Yul, "("),
+            (Token::Identifier, Mode::Yul, "addr"),
+            (Token::RParen, Mode::Yul, ")"),
+            (Token::RBrace, Mode::Normal, "}"),
+        ];
+
+        for i in 0..tests.len() {
+            let (tok, mode, literal) = tests[i].clone();
+
+            assert_eq!(Some(Ok(tok)), lex.next());
+            assert_eq!(mode, lex.extras.mode);
+            assert_eq!(literal.as_bytes(), lex.slice().as_bytes());
+        }
+    }
 
     #[test]
-    fn test_normal_mode() {}
+    fn test_normal_mode() {
+        let mut lex = Token::lexer(
+            "contract Pygmalion {\
+                uint256 counter;
+
+                constructor() {
+                    counter = 5;
+                }
+
+                event o7();
+
+                function inc() public {
+                    if (counter == 1881) {
+                        emit o7();                        
+                    }
+
+                    counter += 1;                    
+                }
+            }",
+        );
+
+        let tests = vec![
+            (Token::Contract, Mode::Normal, "contract"),
+            (Token::Identifier, Mode::Normal, "Pygmalion"),
+            (Token::LBrace, Mode::Normal, "{"),
+            (Token::UnsignedIntegerType, Mode::Normal, "uint256"),
+            (Token::Identifier, Mode::Normal, "counter"),
+            (Token::Semicolon, Mode::Normal, ";"),
+            (Token::Constructor, Mode::Normal, "constructor"),
+            (Token::LParen, Mode::Normal, "("),
+            (Token::RParen, Mode::Normal, ")"),
+            (Token::LBrace, Mode::Normal, "{"),
+            (Token::Identifier, Mode::Normal, "counter"),
+            (Token::Assign, Mode::Normal, "="),
+            (Token::Integer, Mode::Normal, "5"),
+            (Token::Semicolon, Mode::Normal, ";"),
+            (Token::RBrace, Mode::Normal, "}"),
+            (Token::Event, Mode::Normal, "event"),
+            (Token::Identifier, Mode::Normal, "o7"),
+            (Token::LParen, Mode::Normal, "("),
+            (Token::RParen, Mode::Normal, ")"),
+            (Token::Semicolon, Mode::Normal, ";"),
+            (Token::Function, Mode::Normal, "function"),
+            (Token::Identifier, Mode::Normal, "inc"),
+            (Token::LParen, Mode::Normal, "("),
+            (Token::RParen, Mode::Normal, ")"),
+            (Token::Public, Mode::Normal, "public"),
+            (Token::LBrace, Mode::Normal, "{"),
+            (Token::If, Mode::Normal, "if"),
+            (Token::LParen, Mode::Normal, "("),
+            (Token::Identifier, Mode::Normal, "counter"),
+            (Token::Equal, Mode::Normal, "=="),
+            (Token::Integer, Mode::Normal, "1881"),
+            (Token::RParen, Mode::Normal, ")"),
+            (Token::LBrace, Mode::Normal, "{"),
+            (Token::Emit, Mode::Normal, "emit"),
+            (Token::Identifier, Mode::Normal, "o7"),
+            (Token::LParen, Mode::Normal, "("),
+            (Token::RParen, Mode::Normal, ")"),
+            (Token::Semicolon, Mode::Normal, ";"),
+            (Token::RBrace, Mode::Normal, "}"),
+            (Token::Identifier, Mode::Normal, "counter"),
+            (Token::AssignAdd, Mode::Normal, "+="),
+            (Token::Integer, Mode::Normal, "1"),
+            (Token::Semicolon, Mode::Normal, ";"),
+            (Token::RBrace, Mode::Normal, "}"),
+            (Token::RBrace, Mode::Normal, "}"),
+        ];
+
+        for i in 0..tests.len() {
+            let (tok, mode, literal) = tests[i].clone();
+
+            assert_eq!(Some(Ok(tok)), lex.next());
+            assert_eq!(mode, lex.extras.mode);
+            assert_eq!(literal.as_bytes(), lex.slice().as_bytes());
+        }
+    }
 }
