@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use super::file_io::read_from_file;
 use clap::Parser;
 use tokio::io;
@@ -27,7 +29,8 @@ pub async fn get_app_args() -> io::Result<(String, String)> {
     if let Some(code) = cli.code {
         input = code;
     } else if let Some(path) = cli.path {
-        input = read_from_file(&path).await?;
+        let file_path = Path::new(&path);
+        input = read_from_file(file_path.to_path_buf()).await?;
     } else {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
