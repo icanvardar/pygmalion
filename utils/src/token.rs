@@ -26,6 +26,34 @@ impl Default for LexerState {
     }
 }
 
+trait StateManager {
+    fn switch_mode(&mut self, mode: Mode);
+    fn inc_depth(&mut self);
+    fn dec_depth(&mut self);
+    fn is(&mut self, mode: Mode) -> bool;
+}
+
+impl StateManager for LexerState {
+    fn switch_mode(&mut self, mode: Mode) {
+        self.mode = mode;
+    }
+    fn inc_depth(&mut self) {
+        self.depth += 1;
+    }
+    fn dec_depth(&mut self) {
+        if self.depth > 0 {
+            self.depth -= 1;
+        }
+    }
+    fn is(&mut self, mode: Mode) -> bool {
+        if self.mode == mode {
+            return true;
+        };
+
+        return false;
+    }
+}
+
 impl fmt::Display for Mode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self)
@@ -35,30 +63,30 @@ impl fmt::Display for Mode {
 fn switch_mode(lex: &mut Lexer<Token>) {
     match lex.slice().as_bytes() {
         b"pragma" => {
-            lex.extras.mode = Mode::Pragma;
+            lex.extras.switch_mode(Mode::Pragma);
         }
         b"assembly" => {
-            lex.extras.mode = Mode::Assembly;
+            lex.extras.switch_mode(Mode::Assembly);
         }
         b"{" => {
-            if lex.extras.mode == Mode::Assembly {
-                lex.extras.mode = Mode::Yul;
-            } else if lex.extras.mode == Mode::Yul {
-                lex.extras.depth += 1;
+            if lex.extras.is(Mode::Assembly) {
+                lex.extras.switch_mode(Mode::Yul);
+            } else if lex.extras.is(Mode::Yul) {
+                lex.extras.inc_depth();
             }
         }
         b"}" => {
-            if lex.extras.mode == Mode::Yul {
+            if lex.extras.is(Mode::Yul) {
                 if lex.extras.depth > 0 {
-                    lex.extras.depth -= 1;
+                    lex.extras.dec_depth();
                 } else {
-                    lex.extras.mode = Mode::Normal;
+                    lex.extras.switch_mode(Mode::Normal);
                 }
             }
         }
         b";" => {
             if lex.extras.mode == Mode::Pragma {
-                lex.extras.mode = Mode::Normal;
+                lex.extras.switch_mode(Mode::Normal);
             }
         }
         _ => {}
@@ -371,8 +399,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pragma_token() {
+    fn test_pragma_mode() {
         let mut lex = Token::lexer("pragma solidity ^0.8.16;");
+
+        let tests = vec![
+            (Token::Pragma, Mode::Pragma, "pragma"),
+            (Token::Identifier, Mode::Pragma, "solidity"),
+            (Token::BitXor, Mode::Pragma, "^"),
+            (Token::DecimalNumber, Mode::Pragma, "0.8"),
+            (Token::Period, Mode::Pragma, "."),
+        ];
+
+        assert_eq!(lex.next(), Some(Ok(Token::Pragma)));
+        assert_eq!(lex.extras.mode, Mode::Pragma);
 
         while let Some(y) = lex.next() {
             println!("{}", lex.slice());
@@ -380,4 +419,10 @@ mod tests {
             println!("mode: {:?}", lex.extras.mode);
         }
     }
+
+    #[test]
+    fn test_assembly_mode() {}
+
+    #[test]
+    fn test_normal_mode() {}
 }
