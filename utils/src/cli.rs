@@ -30,7 +30,7 @@ pub async fn get_app_args() -> io::Result<(String, String)> {
         input = code;
     } else if let Some(path) = cli.path {
         let file_path = Path::new(&path);
-        input = read_from_file(file_path.to_path_buf()).await?;
+        input = read_from_file(file_path).await?;
     } else {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,
