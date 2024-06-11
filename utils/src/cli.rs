@@ -7,7 +7,7 @@ use tokio::io;
 /// Pygmalion, yet another solidity lexer and stuff!
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Cli {
+pub struct Cli {
     /// Path of Solidity file
     #[arg(short, long)]
     path: Option<String>,
@@ -21,9 +21,7 @@ struct Cli {
     out: Option<String>,
 }
 
-pub async fn get_app_args() -> io::Result<(String, String)> {
-    let cli = Cli::parse();
-
+pub async fn get_app_args(cli: Cli) -> io::Result<(String, String)> {
     let input: String;
 
     if let Some(code) = cli.code {
@@ -39,4 +37,28 @@ pub async fn get_app_args() -> io::Result<(String, String)> {
     }
 
     return Ok((input, cli.out.unwrap_or_else(|| "".to_string())));
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsString;
+
+    use super::*;
+
+    pub fn create_cli<I, T>(itr: I) -> Result<Cli, Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        return Ok(Cli::try_parse_from(itr)?);
+    }
+
+    #[test]
+    fn should_get_args() -> Result<(), Box<dyn std::error::Error>> {
+        let path = "./temp/Test.sol";
+        let cli = create_cli(&["pygmalion", "--path", path])?;
+        assert_eq!(cli.path, Some(path.to_string()));
+
+        Ok(())
+    }
 }
