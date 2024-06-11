@@ -5,3 +5,7 @@ edition = "2021"
 
 [dependencies]
 lexer = { path = "../lexer" }
+utils = { path = "../utils" }
+logos = { version = "0.14.0" }
+clap = { version = "4.5.6", features = ["derive"] }
+tokio = { version = "1.38.0", features = ["fs", "macros", "rt", "rt-multi-thread"] }
