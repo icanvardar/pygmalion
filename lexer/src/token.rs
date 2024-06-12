@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Debug};
 
 use logos::{Lexer, Logos};
 
@@ -109,6 +109,28 @@ fn check_reserve_word(lex: &mut Lexer<Token>) -> Token {
         _ => {
             return Token::Illegal;
         }
+    }
+}
+
+pub trait LexerFormatter {
+    fn stringify(self) -> String;
+}
+
+impl<'source> LexerFormatter for logos::Lexer<'source, Token> {
+    fn stringify(mut self) -> String {
+        let mut result = String::new();
+        while let Some(token) = self.next() {
+            let token_str = format!("{:?}", token.unwrap());
+            let mode_str = format!("{:?}", &self.extras.mode);
+            let identifier = self.slice();
+
+            result.push_str(&format!(
+                "Token: {}, Mode: {}, Identifier: {}\n",
+                token_str, mode_str, identifier
+            ));
+        }
+
+        result
     }
 }
 
@@ -707,5 +729,20 @@ mod tests {
             assert_eq!(mode, lex.extras.mode);
             assert_eq!(literal.as_bytes(), lex.slice().as_bytes());
         }
+    }
+
+    #[test]
+    fn should_stringify_lexer() {
+        let lex = Token::lexer("contract UwU {}");
+
+        assert_eq!(
+            lex.stringify(),
+            "\
+                Token: Contract, Mode: Normal, Identifier: contract\n\
+                Token: Identifier, Mode: Normal, Identifier: UwU\n\
+                Token: LBrace, Mode: Normal, Identifier: {\n\
+                Token: RBrace, Mode: Normal, Identifier: }\n\
+                "
+        );
     }
 }
