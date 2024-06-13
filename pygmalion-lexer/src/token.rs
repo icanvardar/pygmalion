@@ -1,4 +1,4 @@
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 
 use logos::{Lexer, Logos};
 
@@ -50,13 +50,7 @@ impl StateManager for LexerState {
             return true;
         };
 
-        return false;
-    }
-}
-
-impl fmt::Display for Mode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
+        false
     }
 }
 
@@ -104,11 +98,9 @@ fn check_reserve_word(lex: &mut Lexer<Token>) -> Token {
                 return Token::ReservedKeyword;
             }
 
-            return Token::YulCase;
+            Token::YulCase
         }
-        _ => {
-            return Token::Illegal;
-        }
+        _ => Token::Illegal,
     }
 }
 

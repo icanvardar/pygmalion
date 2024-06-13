@@ -18,7 +18,7 @@ Pygmalion can be used through its CLI. You can either provide a Solidity file or
 You can add Pygmalion to your project using Cargo. Run the following command:
 
 ```sh
-cargo add pygmalion
+cargo install pygmalion
 ```
 
 ### Command Line Interface

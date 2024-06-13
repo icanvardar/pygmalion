@@ -11,9 +11,9 @@ fn is_solidity_file(path: &str) -> bool {
         }
 
         return true;
-    } else {
-        return false;
     }
+
+    false
 }
 
 pub async fn read_from_file(path: &Path) -> io::Result<String> {
@@ -28,13 +28,13 @@ pub async fn read_from_file(path: &Path) -> io::Result<String> {
 
     let contents = fs::read_to_string(path).await?;
 
-    return Ok(contents);
+    Ok(contents)
 }
 
 pub async fn write_to_file(path: &Path, content: &[u8]) -> io::Result<()> {
     check_file_existency(path).await?;
 
-    return Ok(fs::write(path, content).await?);
+    fs::write(path, content).await
 }
 
 async fn check_file_existency(path: &Path) -> io::Result<()> {
