@@ -6,8 +6,8 @@ authors = ["Can Vardar <https://github.com/icanvardar"]
 description = "A module that provides the core lexical analysis functionality for the Pygmalion Solidity lexer."
 readme = "README.md"
 repository = "https://github.com/icanvardar/pygmalion/tree/main/pygmalion-lexer"
-licence = "MIT"
-licence-file = "LICENCE"
+license = "MIT"
+license-file = "LICENSE"
 keywords = ["pygmalion", "lexer"]
 
 [dependencies]

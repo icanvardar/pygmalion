@@ -6,8 +6,8 @@ authors = ["Can Vardar <https://github.com/icanvardar"]
 description = "Pygmalion, yet another Solidity lexer written in Rust!"
 readme = "README.md"
 repository = "https://github.com/icanvardar/pygmalion"
-licence = "MIT"
-licence-file = "LICENCE"
+license = "MIT"
+license-file = "LICENSE"
 keywords = ["pygmalion", "lexer"]
 
 [dependencies]
