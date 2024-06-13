@@ -36,7 +36,7 @@ pub async fn get_app_args(cli: Cli) -> io::Result<(String, String)> {
         ));
     }
 
-    return Ok((input, cli.out.unwrap_or_else(|| "".to_string())));
+    Ok((input, cli.out.unwrap_or_default()))
 }
 
 #[cfg(test)]
