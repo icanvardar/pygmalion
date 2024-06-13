@@ -1,13 +1,13 @@
 use std::path::Path;
 
 use clap::Parser;
-use lexer::token::{LexerFormatter, Token};
 use logos::Logos;
-use tokio::{fs, io};
-use utils::{
+use pygmalion_lexer::token::{LexerFormatter, Token};
+use pygmalion_utils::{
     cli::{self, get_app_args},
     file_io::{self, write_to_file},
 };
+use tokio::{fs, io};
 
 const PSEUDO_FILE_CONTENT: &[u8] = b"contract Test{}";
 const PSEUDO_OUTPUT: &str = "\

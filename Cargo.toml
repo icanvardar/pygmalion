@@ -2,8 +2,8 @@
 
 members = [
 	"pygmalion",
-	"lexer", 
-	"utils",
+	"pygmalion-lexer", 
+	"pygmalion-utils",
 	"tests-integration",
 ]
 

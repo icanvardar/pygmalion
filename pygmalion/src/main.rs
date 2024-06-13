@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use clap::Parser;
-use lexer::token::{LexerFormatter, Token};
 use logos::Logos;
-use utils::{
+use pygmalion_lexer::token::{LexerFormatter, Token};
+use pygmalion_utils::{
     cli::{self, get_app_args},
     file_io,
 };
