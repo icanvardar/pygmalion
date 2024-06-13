@@ -4,6 +4,7 @@ members = [
 	"pygmalion",
 	"lexer", 
 	"utils",
+	"tests-integration",
 ]
 
 resolver = "2"
