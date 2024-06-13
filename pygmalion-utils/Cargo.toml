@@ -2,6 +2,13 @@
 name = "pygmalion-utils"
 version = "0.1.0"
 edition = "2021"
+authors = ["Can Vardar <https://github.com/icanvardar"]
+description = "A module that provides utility functions for the Pygmalion Solidity lexer."
+readme = "README.md"
+repository = "https://github.com/icanvardar/pygmalion/tree/main/pygmalion-utils"
+licence = "MIT"
+licence-file = "LICENCE"
+keywords = ["pygmalion", "lexer", "utils"]
 
 [dependencies]
 clap = { version = "4.5.6", features = ["derive"] }

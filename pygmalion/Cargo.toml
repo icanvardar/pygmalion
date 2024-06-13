@@ -2,6 +2,13 @@
 name = "pygmalion"
 version = "0.1.0"
 edition = "2021"
+authors = ["Can Vardar <https://github.com/icanvardar"]
+description = "Pygmalion, yet another Solidity lexer written in Rust!"
+readme = "README.md"
+repository = "https://github.com/icanvardar/pygmalion"
+licence = "MIT"
+licence-file = "LICENCE"
+keywords = ["pygmalion", "lexer"]
 
 [dependencies]
 pygmalion-lexer = { path = "../pygmalion-lexer" }
