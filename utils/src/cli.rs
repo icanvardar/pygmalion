@@ -27,8 +27,8 @@ pub async fn get_app_args(cli: Cli) -> io::Result<(String, String)> {
     if let Some(code) = cli.code {
         input = code;
     } else if let Some(path) = cli.path {
-        let file_path = Path::new(&path);
-        input = read_from_file(file_path).await?;
+        let file_path = Path::new(&path).canonicalize()?;
+        input = read_from_file(&file_path).await?;
     } else {
         return Err(io::Error::new(
             io::ErrorKind::NotFound,

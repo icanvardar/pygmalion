@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use clap::Parser;
-use lexer::token::Token;
+use lexer::token::{LexerFormatter, Token};
 use logos::Logos;
 use utils::{
     cli::{self, get_app_args},
@@ -14,16 +14,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (source, out) = get_app_args(cli).await?;
 
-    let _lex = Token::lexer(&source);
+    let lex = Token::lexer(&source);
 
-    // TODO: Format lexical analysis data
-    let output = b"You shall not pass!";
+    let output = lex.stringify();
 
     if !out.is_empty() {
-        // NOTE: Write formatted data to disk
-        file_io::write_to_file(&Path::new(&out).canonicalize()?, output).await?;
+        file_io::write_to_file(&Path::new(&out).canonicalize()?, output.as_bytes()).await?;
     } else {
-        // TODO: Show formatted data on console
+        println!("Analysis Result:\n {}", &output);
     }
 
     Ok(())

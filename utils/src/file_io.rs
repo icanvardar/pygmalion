@@ -38,14 +38,11 @@ pub async fn write_to_file(path: &Path, content: &[u8]) -> io::Result<()> {
 }
 
 async fn check_file_existency(path: &Path) -> io::Result<()> {
-    if fs::try_exists(path).await? {
-        return Ok(());
+    if !fs::try_exists(path).await? {
+        fs::File::create(&path).await?;
     }
 
-    Err(io::Error::new(
-        io::ErrorKind::NotFound,
-        "No input or destination provided",
-    ))
+    Ok(())
 }
 
 #[cfg(test)]
@@ -77,7 +74,10 @@ mod tests {
         let file_path = Path::new(dir_name).join(file_name);
 
         fs::remove_file(file_path).await?;
-        fs::remove_dir(dir_name).await?;
+
+        if !dir_name.is_empty() {
+            fs::remove_dir(dir_name).await?;
+        }
 
         Ok(())
     }
@@ -113,17 +113,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_file_existency() -> io::Result<()> {
-        // NOTE: I think Rust recognizes paths on workspace basis.
-        // I need to keep in my mind that paths start from utils.
-        let true_path = Path::new("./src/lib.rs").canonicalize()?;
-        println!("absolute path: {:?}", true_path);
+        let non_existing_path = Path::new("").join("im_not_here.c");
+        let exists = fs::try_exists(&non_existing_path).await?;
 
-        check_file_existency(&true_path).await?;
+        assert_eq!(exists, false);
 
-        let false_path = Path::new("some_wrong_path.js");
-        let e = check_file_existency(&false_path).await.unwrap_err();
+        check_file_existency(&non_existing_path).await?;
 
-        assert_eq!(e.kind(), io::ErrorKind::NotFound);
+        let exists = fs::try_exists(non_existing_path).await?;
+
+        assert_eq!(exists, true);
+
+        remove_temp_file("", "im_not_here.c").await?;
 
         Ok(())
     }
