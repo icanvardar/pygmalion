@@ -11,8 +11,8 @@ license-file = "../LICENSE"
 keywords = ["pygmalion", "lexer"]
 
 [dependencies]
-pygmalion-lexer = { path = "../pygmalion-lexer" }
-pygmalion-utils = { path = "../pygmalion-utils" }
+pygmalion-lexer = { path = "../pygmalion-lexer", version = "0.1.0" }
+pygmalion-utils = { path = "../pygmalion-utils", version = "0.1.0" }
 logos = { version = "0.14.0" }
 clap = { version = "4.5.6", features = ["derive"] }
 tokio = { version = "1.38.0", features = ["fs", "macros", "rt", "rt-multi-thread"] }
