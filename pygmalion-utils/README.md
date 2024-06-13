@@ -4,4 +4,4 @@ This module provides utility functions and structures to support the main functi
 
 ## License
 
-This module is part of Pygmalion and is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+This module is part of Pygmalion and is licensed under the MIT License. See the [LICENSE](https://github.com/icanvardar/pygmalion/blob/main/pygmalion-utils/LICENCE) file for more details.
