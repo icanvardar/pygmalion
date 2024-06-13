@@ -13,6 +13,14 @@ Pygmalion, yet another Solidity lexer written in Rust! This project leverages th
 
 Pygmalion can be used through its CLI. You can either provide a Solidity file or a short snippet of Solidity code for analysis. The lexer will output the tokenized version of the input.
 
+## Installation
+
+You can add Pygmalion to your project using Cargo. Run the following command:
+
+```sh
+cargo add pygmalion
+```
+
 ### Command Line Interface
 
 Here are the available CLI options:
